@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>ABYSS // HUNT OR BE HUNTED</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --abyss-0: #01040a;
+    --abyss-1: #04132a;
+    --abyss-2: #082c52;
+    --bio:     #5cf6ff;
+    --bio-2:   #b8feff;
+    --pred:    #ff2e6a;
+    --pred-2:  #ff86a5;
+    --gold:    #ffd860;
+    --pearl:   #dceaf2;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--abyss-0);
+    color: var(--pearl);
+    font-family: 'DM Mono', monospace;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse at 50% -20%, rgba(92,246,255,0.08), transparent 60%),
+      radial-gradient(ellipse at 50% 120%, rgba(255,46,106,0.06), transparent 50%),
+      linear-gradient(180deg, var(--abyss-1) 0%, var(--abyss-0) 100%);
+  }
+
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      linear-gradient(110deg, transparent 30%, rgba(92,246,255,0.04) 35%, transparent 45%),
+      linear-gradient(80deg, transparent 50%, rgba(92,246,255,0.05) 55%, transparent 65%);
+    pointer-events: none;
+    animation: drift 18s ease-in-out infinite alternate;
+    z-index: 1;
+  }
+  @keyframes drift {
+    0%   { transform: translateX(-4%); }
+    100% { transform: translateX(4%); }
+  }
+
+  .frame {
+    position: relative;
+    z-index: 2;
+    height: 100dvh;
+    width: 100vw;
+    display: block;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  /* Hide the HTML HUD entirely — the game now draws all stats inside the canvas. */
+  .hud { display: none; }
+
+  .stage {
+    position: absolute;
+    inset: 0;
+    display: block;
+    min-height: 0;
+  }
+  .board-wrap {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    max-width: none;
+  }
+  .board-wrap::before,
+  .board-wrap::after { display: none; }
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--abyss-0);
+  }
+
+  .hud {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    gap: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(92,246,255,0.18);
+  }
+  .title {
+    grid-column: 2;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: clamp(22px, 6vw, 36px);
+    letter-spacing: 0.32em;
+    color: var(--bio-2);
+    text-shadow: 0 0 12px rgba(92,246,255,0.55), 0 0 36px rgba(92,246,255,0.25);
+  }
+  .title small {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.5em;
+    color: var(--pred);
+    text-shadow: 0 0 8px rgba(255,46,106,0.6);
+    margin-top: 2px;
+    font-weight: 400;
+  }
+
+  .level-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: rgba(220,234,242,0.55);
+  }
+  .level-bar .lvl {
+    color: var(--bio);
+    text-shadow: 0 0 8px rgba(92,246,255,0.5);
+    font-weight: 500;
+    letter-spacing: 0.35em;
+  }
+  .level-bar .track {
+    flex: 1;
+    height: 6px;
+    background: rgba(92,246,255,0.08);
+    border: 1px solid rgba(92,246,255,0.25);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .level-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--bio) 0%, #b8feff 100%);
+    box-shadow: 0 0 8px var(--bio), 0 0 16px rgba(92,246,255,0.5);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  .level-bar .goal {
+    color: var(--gold);
+    text-shadow: 0 0 6px rgba(255,216,96,0.5);
+  }
+
+  .stat {
+    font-size: clamp(18px, 4.5vw, 22px);
+    line-height: 1;
+    color: var(--bio);
+    text-shadow: 0 0 8px rgba(92,246,255,0.5);
+    font-weight: 500;
+  }
+  .stat .lbl {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.35em;
+    color: rgba(220,234,242,0.45);
+    text-shadow: none;
+    margin-bottom: 4px;
+    font-weight: 400;
+  }
+  .stat .sub {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: rgba(220,234,242,0.55);
+    text-shadow: none;
+    margin-top: 4px;
+    font-weight: 400;
+  }
+  .stat .sub b {
+    color: var(--gold);
+    text-shadow: 0 0 6px rgba(255,216,96,0.5);
+    font-weight: 500;
+  }
+  .stat.right { text-align: right; }
+  .stat.right .val { display: inline-flex; align-items: baseline; gap: 6px; justify-content: flex-end; }
+  .stat.right .val .you { color: var(--bio); text-shadow: 0 0 8px rgba(92,246,255,0.5); }
+  .stat.right .val .foe { color: var(--pred); text-shadow: 0 0 8px rgba(255,46,106,0.5); }
+  .stat.right .val .vs  { color: rgba(220,234,242,0.4); font-size: 0.65em; letter-spacing: 0.2em; }
+  #threatLbl.prey   { color: var(--bio); text-shadow: 0 0 6px rgba(92,246,255,0.5); }
+  #threatLbl.threat { color: var(--pred); text-shadow: 0 0 6px rgba(255,46,106,0.5); }
+  #threatLbl.gone   { color: rgba(220,234,242,0.45); }
+
+  .stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 0;
+  }
+  .board-wrap {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    width: min(100%, 72dvh);
+    max-width: 600px;
+  }
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: 1px dashed rgba(92,246,255,0.35);
+    border-radius: 4px;
+    box-shadow:
+      inset 0 0 80px rgba(0,0,0,0.55),
+      inset 0 0 20px rgba(92,246,255,0.08),
+      0 0 40px rgba(92,246,255,0.12),
+      0 0 120px rgba(0,0,0,0.6);
+  }
+
+  .board-wrap::before,
+  .board-wrap::after {
+    content: "";
+    position: absolute;
+    width: 22px; height: 22px;
+    border: 1px solid var(--bio);
+    pointer-events: none;
+    opacity: 0.7;
+  }
+  .board-wrap::before { top: -8px; left: -8px; border-right: 0; border-bottom: 0; }
+  .board-wrap::after  { bottom: -8px; right: -8px; border-left: 0; border-top: 0; }
+
+  .overlay {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px; padding: 24px;
+    background: rgba(1,4,10,0.78);
+    backdrop-filter: blur(4px);
+    text-align: center;
+    z-index: 5;
+    border-radius: 4px;
+  }
+  .overlay.hidden { display: none; }
+  .overlay h2 {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: clamp(24px, 6.5vw, 38px);
+    letter-spacing: 0.18em;
+    color: var(--bio-2);
+    text-shadow: 0 0 16px rgba(92,246,255,0.7);
+  }
+  .overlay h2.danger {
+    color: var(--pred-2);
+    text-shadow: 0 0 16px rgba(255,46,106,0.8);
+  }
+  .overlay p {
+    font-size: clamp(14px, 3.4vw, 17px);
+    color: var(--pearl);
+    line-height: 1.5;
+    max-width: 36ch;
+    opacity: 0.9;
+  }
+  .overlay p b { color: var(--gold); }
+  .overlay .blink {
+    font-size: 12px;
+    letter-spacing: 0.4em;
+    color: rgba(220,234,242,0.6);
+    animation: blink 1.4s ease-in-out infinite;
+    margin-top: 4px;
+  }
+  @keyframes blink { 50% { opacity: 0.2; } }
+
+  .btn {
+    appearance: none;
+    background: linear-gradient(180deg, rgba(92,246,255,0.12), rgba(92,246,255,0.04));
+    border: 1px solid var(--bio);
+    color: var(--bio);
+    font-family: 'Cinzel', serif;
+    font-weight: 500;
+    font-size: 16px;
+    letter-spacing: 0.3em;
+    padding: 12px 28px;
+    cursor: pointer;
+    text-shadow: 0 0 10px rgba(92,246,255,0.6);
+    box-shadow: 0 0 20px rgba(92,246,255,0.15), inset 0 0 20px rgba(92,246,255,0.08);
+    transition: all 0.15s ease;
+    border-radius: 2px;
+  }
+  .btn:hover {
+    background: linear-gradient(180deg, rgba(92,246,255,0.22), rgba(92,246,255,0.08));
+    box-shadow: 0 0 28px rgba(92,246,255,0.3);
+  }
+  .btn:active { transform: translateY(1px); }
+
+  /* Big circular turn buttons at the bottom corners.
+     Always visible — useful on desktop too. */
+  .turn-pad {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 4;
+    pointer-events: none; /* let bg pass through; buttons re-enable below */
+    padding: clamp(16px, 4vw, 36px);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+  }
+  .turn-pad button {
+    pointer-events: auto;
+    appearance: none;
+    width: clamp(96px, 18vw, 160px);
+    height: clamp(96px, 18vw, 160px);
+    border-radius: 50%;
+    border: 2px solid var(--bio);
+    color: var(--bio);
+    font-family: 'Cinzel', serif;
+    font-weight: 500;
+    font-size: clamp(14px, 2.6vw, 20px);
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    /* Layered radial — bright center fading to translucent edge. */
+    background:
+      radial-gradient(circle at 35% 30%, rgba(184,254,255,0.45), rgba(92,246,255,0.10) 55%, rgba(92,246,255,0.02) 100%);
+    box-shadow:
+      0 0 24px rgba(92,246,255,0.35),
+      0 0 48px rgba(92,246,255,0.15),
+      inset 0 0 30px rgba(92,246,255,0.25),
+      inset 0 4px 12px rgba(255,255,255,0.15);
+    text-shadow: 0 0 14px rgba(92,246,255,0.9), 0 0 28px rgba(92,246,255,0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.08s ease, box-shadow 0.12s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .turn-pad button .glyph {
+    font-size: clamp(32px, 6vw, 52px);
+    line-height: 1;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .turn-pad button:hover {
+    box-shadow:
+      0 0 32px rgba(92,246,255,0.55),
+      0 0 64px rgba(92,246,255,0.25),
+      inset 0 0 36px rgba(92,246,255,0.35);
+  }
+  .turn-pad button:active {
+    transform: scale(0.94);
+    background:
+      radial-gradient(circle at 35% 30%, rgba(255,255,255,0.6), rgba(92,246,255,0.30) 55%, rgba(92,246,255,0.10) 100%);
+    box-shadow:
+      0 0 40px rgba(92,246,255,0.7),
+      inset 0 0 40px rgba(92,246,255,0.5);
+  }
+  /* Subtle pulsing ring around each button when idle so they feel alive. */
+  .turn-pad button::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1px solid rgba(92,246,255,0.35);
+    animation: turnPulse 2.4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .turn-pad button { position: relative; }
+  @keyframes turnPulse {
+    0%, 100% { opacity: 0.25; transform: scale(1); }
+    50%      { opacity: 0.7;  transform: scale(1.06); }
+  }
+
+  /* Footer hint at top-right corner, small and unobtrusive (since HUD is gone). */
+  .footer {
+    position: fixed;
+    bottom: 8px;
+    right: 12px;
+    z-index: 3;
+    color: rgba(220,234,242,0.35);
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    pointer-events: none;
+  }
+  .footer kbd {
+    font-family: 'DM Mono', monospace;
+    border: 1px solid rgba(92,246,255,0.25);
+    padding: 1px 5px;
+    color: var(--bio);
+    margin: 0 2px;
+    border-radius: 2px;
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    .footer .kbd-hint { display: none; }
+    .footer { display: none; }
+  }
+  /* On very small screens, scoot the footer hint above the buttons so it doesn't collide. */
+  @media (max-width: 720px) {
+    .footer { bottom: auto; top: 8px; right: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <header class="hud">
+    <div class="stat">
+      <span class="lbl">DEPTH</span>
+      <span id="score">0000</span>
+      <span class="sub">BEST <b id="best">0000</b></span>
+    </div>
+    <div class="title">
+      ABYSS
+      <small id="levelName">LEVEL 1 · TIDEPOOL</small>
+    </div>
+    <div class="stat right">
+      <span class="lbl">LENGTH</span>
+      <span id="youLen">4</span>
+    </div>
+    <div class="level-bar">
+      <span class="lvl" id="levelText">LVL 1</span>
+      <div class="track"><div class="fill" id="levelFill"></div></div>
+      <span class="goal"><span id="levelProg">0</span>/<span id="levelGoal">5</span></span>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="board-wrap">
+      <canvas id="game" width="600" height="600"></canvas>
+
+      <div class="overlay" id="overlay">
+        <h2 id="ovTitle">DESCEND</h2>
+        <p id="ovMsg">A bioluminescent eel in open water. Tap or press any key to turn clockwise.<br><br>Survive <b>10 levels</b> of the abyss — from sunlit tidepools down to the black trench. Eat fish to progress, chase pearls and power orbs, and avoid rocks, urchins, and currents.</p>
+        <button class="btn" id="startBtn">▼ DIVE</button>
+        <div class="blink" id="ovHint">PRESS ANY KEY</div>
+      </div>
+    </div>
+  </main>
+
+  <div class="turn-pad" aria-hidden="true">
+    <button id="turnLeftBtn" aria-label="Turn left">
+      <span class="glyph">↺</span>
+      <span>LEFT</span>
+    </button>
+    <button id="turnRightBtn" aria-label="Turn right">
+      <span class="glyph">↻</span>
+      <span>RIGHT</span>
+    </button>
+  </div>
+
+  <footer class="footer">
+    <span class="kbd-hint"><kbd>←</kbd>/<kbd>A</kbd> left · <kbd>→</kbd>/<kbd>D</kbd> right · <kbd>SPACE</kbd> pause · <kbd>M</kbd> mute</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const youLenEl = document.getElementById('youLen');
+  const levelTextEl = document.getElementById('levelText');
+  const levelFillEl = document.getElementById('levelFill');
+  const levelProgEl = document.getElementById('levelProg');
+  const levelGoalEl = document.getElementById('levelGoal');
+  const levelNameEl = document.getElementById('levelName');
+  const overlay = document.getElementById('overlay');
+  const ovTitle = document.getElementById('ovTitle');
+  const ovMsg   = document.getElementById('ovMsg');
+  const ovHint  = document.getElementById('ovHint');
+  const startBtn = document.getElementById('startBtn');
+
+  // Dynamic grid sized to viewport. Each tile is ~CELL px. COLS/ROWS adjust to fill the screen.
+  let COLS = 24, ROWS = 24;
+  let CELL = 26;
+  let VIEW_W = 600, VIEW_H = 600; // logical viewport size used by all drawing code
+
+  function fitDPR() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width  = Math.round(rect.width  * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    // Logical viewport equals CSS pixels.
+    VIEW_W = rect.width;
+    VIEW_H = rect.height;
+    // Aim for a comfortable tile size that scales with device size.
+    const targetCell = Math.max(22, Math.min(36, Math.round(Math.min(VIEW_W, VIEW_H) / 22)));
+    CELL = targetCell;
+    COLS = Math.max(12, Math.floor(VIEW_W / CELL));
+    ROWS = Math.max(12, Math.floor(VIEW_H / CELL));
+    // Recompute CELL so the grid exactly fits the viewport (no fractional gap on the right/bottom).
+    CELL = Math.min(VIEW_W / COLS, VIEW_H / ROWS);
+    // Set the drawing transform so 1 unit = 1 CSS pixel.
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // Snap any out-of-bounds entities back into the new grid (in case of resize during play).
+    if (player) {
+      clampSnakeToGrid(player);
+    }
+    if (foods)     foods     = foods.filter(f => f.x < COLS && f.y < ROWS);
+    if (powerups)  powerups  = powerups.filter(p => p.x < COLS && p.y < ROWS);
+    if (obstacles) obstacles = obstacles.filter(o => o.x < COLS && o.y < ROWS);
+    if (urchins)   urchins   = urchins.filter(u => u.x < COLS && u.y < ROWS);
+    if (currents)  currents  = currents.filter(c => c.x < COLS && c.y < ROWS);
+  }
+  function clampSnakeToGrid(snake) {
+    for (const s of snake.body)     { s.x = Math.min(COLS - 1, s.x); s.y = Math.min(ROWS - 1, s.y); }
+    if (snake.prevBody) for (const s of snake.prevBody) { s.x = Math.min(COLS - 1, s.x); s.y = Math.min(ROWS - 1, s.y); }
+  }
+  window.addEventListener('resize', fitDPR);
+
+  let player, foods, score, state = 'idle';
+  let powerups, particles, floatingTexts;
+  let obstacles, urchins, currents;
+  let bestScore = 0;
+  let combo = 0, lastEatTime = 0;
+  let shakeTime = 0, shakeMag = 0;
+  let activeBoost = 0;     // ms remaining of speed boost
+  let activeShield = 0;    // ms remaining of self-bite shield
+  let tickAcc = 0, lastT = 0;
+  const baseSpeed = 8;
+  let bubbles = [];
+  let kelpStrands = [];
+  let ambientFish = [];
+
+  // ---- Levels ----
+  let currentLevel = 1;
+  let fishEatenThisLevel = 0;
+  let levelBannerUntil = 0; // performance.now() until which to show the banner
+  let victoryBannerUntil = 0; // separate timer for the L10 finale banner
+
+  const LEVELS = [
+    // L1
+    { goal: 5,  speedBonus: 0,  rocks: 0,  urchins: 0, currents: false, pearls: false, powerups: false, name: 'TIDEPOOL' },
+    // L2
+    { goal: 7,  speedBonus: 1,  rocks: 0,  urchins: 0, currents: false, pearls: false, powerups: false, name: 'SHALLOWS' },
+    // L3 — pearls unlock
+    { goal: 9,  speedBonus: 1,  rocks: 0,  urchins: 0, currents: false, pearls: true,  powerups: false, name: 'REEF EDGE' },
+    // L4 — rocks
+    { goal: 10, speedBonus: 2,  rocks: 4,  urchins: 0, currents: false, pearls: true,  powerups: false, name: 'CORAL MAZE' },
+    // L5 — powerups
+    { goal: 12, speedBonus: 2,  rocks: 5,  urchins: 0, currents: false, pearls: true,  powerups: true,  name: 'WRECK SITE' },
+    // L6
+    { goal: 14, speedBonus: 3,  rocks: 7,  urchins: 0, currents: false, pearls: true,  powerups: true,  name: 'DEEP SLOPE' },
+    // L7 — currents
+    { goal: 16, speedBonus: 3,  rocks: 6,  urchins: 0, currents: true,  pearls: true,  powerups: true,  name: 'RIPTIDE' },
+    // L8 — urchins
+    { goal: 18, speedBonus: 4,  rocks: 6,  urchins: 3, currents: true,  pearls: true,  powerups: true,  name: 'BLACK TRENCH' },
+    // L9
+    { goal: 20, speedBonus: 5,  rocks: 8,  urchins: 5, currents: true,  pearls: true,  powerups: true,  name: 'BENTHIC NIGHT' },
+    // L10 — finale
+    { goal: 25, speedBonus: 6,  rocks: 10, urchins: 7, currents: true,  pearls: true,  powerups: true,  name: 'THE ABYSS' },
+  ];
+  const MAX_LEVEL = LEVELS.length;
+
+  function currentLevelConfig() {
+    // After L10 we keep getting harder in endless mode (uses last config as base).
+    if (currentLevel <= MAX_LEVEL) return LEVELS[currentLevel - 1];
+    const last = LEVELS[MAX_LEVEL - 1];
+    const extra = currentLevel - MAX_LEVEL;
+    return {
+      ...last,
+      goal: last.goal + extra * 3,
+      speedBonus: last.speedBonus + extra,
+      rocks: Math.min(20, last.rocks + extra),
+      urchins: Math.min(14, last.urchins + extra),
+      name: 'ENDLESS',
+    };
+  }
+
+  // ---- Persistence ----
+  try {
+    bestScore = parseInt(localStorage.getItem('abyss_best') || '0', 10) || 0;
+  } catch (e) { bestScore = 0; }
+
+  function saveBest() {
+    try { localStorage.setItem('abyss_best', String(bestScore)); } catch (e) {}
+  }
+
+  // ---- Audio (synthesized, no asset files) ----
+  let audioCtx = null;
+  let masterGain = null;
+  let muted = false;
+  function ensureAudio() {
+    if (audioCtx) return audioCtx;
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 0.18;
+      masterGain.connect(audioCtx.destination);
+    } catch (e) { audioCtx = null; }
+    return audioCtx;
+  }
+  function tone(freq, dur, type='sine', vol=0.5, attack=0.005) {
+    if (muted) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g).connect(masterGain);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
+  }
+  function sweep(f1, f2, dur, type='sawtooth', vol=0.4) {
+    if (muted) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(f1, t);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g).connect(masterGain);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
+  }
+  const sfx = {
+    eatFish:    () => { tone(880, 0.08, 'square', 0.35); setTimeout(() => tone(1320, 0.06, 'square', 0.25), 40); },
+    eatPearl:   () => { tone(1175, 0.10, 'sine', 0.5); setTimeout(() => tone(1568, 0.10, 'sine', 0.45), 80); setTimeout(() => tone(2349, 0.12, 'sine', 0.35), 160); },
+    shieldBreak: () => { sweep(220, 60, 0.35, 'sawtooth', 0.5); tone(110, 0.4, 'square', 0.3); },
+    die:        () => { sweep(440, 55, 0.9, 'sawtooth', 0.5); },
+    powerup:    () => { tone(660, 0.06, 'sine', 0.4); setTimeout(() => tone(880, 0.06, 'sine', 0.4), 50); setTimeout(() => tone(1320, 0.10, 'sine', 0.4), 100); setTimeout(() => tone(1760, 0.14, 'sine', 0.4), 150); },
+    levelUp:    () => {
+      // Cheerful ascending arpeggio.
+      const notes = [523, 659, 784, 988, 1175, 1568];
+      notes.forEach((f, i) => setTimeout(() => tone(f, 0.18, 'triangle', 0.4), i * 70));
+    },
+    pause:      () => { tone(440, 0.04, 'square', 0.25); },
+    combo:      (n) => { tone(440 * Math.pow(1.122, Math.min(12, n)), 0.06, 'triangle', 0.35); },
+  };
+
+  // ---- Particles ----
+  function spawnParticles(x, y, color, count=8, speedMul=1) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const v = (0.6 + Math.random() * 1.6) * speedMul;
+      particles.push({
+        x, y,
+        vx: Math.cos(a) * v,
+        vy: Math.sin(a) * v - 0.2,
+        r: 1 + Math.random() * 2.5,
+        life: 1,
+        decay: 0.018 + Math.random() * 0.022,
+        color,
+      });
+    }
+  }
+  function spawnFloatingText(x, y, text, color) {
+    floatingTexts.push({ x, y, text, color, life: 1, vy: -0.6 });
+  }
+
+  // ---- Screen shake ----
+  function shake(mag, dur=0.25) {
+    shakeMag = Math.max(shakeMag, mag);
+    shakeTime = Math.max(shakeTime, dur);
+  }
+
+  function makeSnake(x, y, len, dir, isPlayer = false) {
+    const body = [];
+    for (let i = 0; i < len; i++) {
+      body.push(wrap({ x: x - i*dir.x, y: y - i*dir.y }));
+    }
+    const prevBody = body.map(s => ({ ...s }));
+    return {
+      body, prevBody, dir, nextDir: { ...dir },
+      alive: true, isPlayer, pendingGrowth: 0,
+      lastTickAt: performance.now(),
+      tickIntervalMs: 125,
+    };
+  }
+
+  function reset() {
+    player = makeSnake(Math.floor(COLS/2) - 1, Math.floor(ROWS/2), 4, {x:1,y:0}, true);
+    foods = [];
+    powerups = [];
+    particles = [];
+    floatingTexts = [];
+    obstacles = [];
+    urchins = [];
+    currents = [];
+    combo = 0;
+    lastEatTime = 0;
+    shakeTime = 0; shakeMag = 0;
+    activeBoost = 0; activeShield = 0;
+    score = 0;
+    currentLevel = 1;
+    fishEatenThisLevel = 0;
+    victoryBannerUntil = 0;
+    tickAcc = 0;
+    lastT = performance.now();
+    buildLevel();
+    updateHud();
+    initBubbles();
+    initKelp();
+    initAmbientFish();
+  }
+
+  function buildLevel() {
+    // Clear board, keep player, then place obstacles/urchins/currents and fish.
+    foods = [];
+    powerups = [];
+    obstacles = [];
+    urchins = [];
+    currents = [];
+    const cfg = currentLevelConfig();
+
+    // Scale entity counts by grid area relative to a 24x24 baseline.
+    const areaScale = Math.max(1, Math.sqrt((COLS * ROWS) / (24 * 24)));
+
+    const rockCount   = Math.round(cfg.rocks   * areaScale);
+    const urchinCount = Math.round(cfg.urchins * areaScale);
+    const fishCount   = Math.max(4, Math.round(4 * areaScale));
+
+    for (let i = 0; i < rockCount; i++) {
+      const spot = findSafeSpot(3);
+      if (spot) obstacles.push({ x: spot.x, y: spot.y, seed: Math.random() * 1000 });
+    }
+    for (let i = 0; i < urchinCount; i++) {
+      const spot = findSafeSpot(4);
+      if (spot) urchins.push({ x: spot.x, y: spot.y, phase: Math.random() * Math.PI * 2 });
+    }
+    if (cfg.currents) {
+      const streakCount = Math.round((5 + Math.floor(Math.random() * 3)) * areaScale);
+      const dirs = [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}];
+      for (let i = 0; i < streakCount; i++) {
+        const dir = dirs[Math.floor(Math.random() * dirs.length)];
+        const start = findSafeSpot(3);
+        if (!start) continue;
+        const len = 3 + Math.floor(Math.random() * 3);
+        for (let k = 0; k < len; k++) {
+          const cx = (start.x + dir.x * k + COLS) % COLS;
+          const cy = (start.y + dir.y * k + ROWS) % ROWS;
+          if (!occupied(cx, cy)) currents.push({ x: cx, y: cy, dx: dir.x, dy: dir.y });
+        }
+      }
+    }
+    for (let i = 0; i < fishCount; i++) spawnFood();
+    levelBannerUntil = performance.now() + 2200;
+  }
+
+  // Find a free tile at least `minDist` tiles from the player's head.
+  function findSafeSpot(minDist) {
+    const head = player.body[0];
+    let tries = 0;
+    while (tries++ < 300) {
+      const x = Math.floor(Math.random() * COLS);
+      const y = Math.floor(Math.random() * ROWS);
+      if (occupied(x, y)) continue;
+      const d = Math.min(
+        Math.abs(x - head.x), COLS - Math.abs(x - head.x)
+      ) + Math.min(
+        Math.abs(y - head.y), ROWS - Math.abs(y - head.y)
+      );
+      if (d < minDist) continue;
+      return { x, y };
+    }
+    return null;
+  }
+
+  function initBubbles() {
+    bubbles = [];
+    for (let i = 0; i < 28; i++) {
+      bubbles.push({
+        x: Math.random() * VIEW_W,
+        y: Math.random() * VIEW_H,
+        r: 1 + Math.random() * 3,
+        vy: 0.2 + Math.random() * 0.7,
+        sway: Math.random() * Math.PI * 2,
+        swaySpeed: 0.5 + Math.random() * 1.2,
+      });
+    }
+  }
+
+  function initKelp() {
+    kelpStrands = [];
+    // Density scales with viewport width; one strand per ~100 CSS pixels.
+    const count = Math.max(4, Math.round(VIEW_W / 110));
+    for (let i = 0; i < count; i++) {
+      const xFrac = (i + 0.5) / count;
+      const rootX = xFrac * VIEW_W + (Math.random() - 0.5) * 30;
+      kelpStrands.push({
+        rootX,
+        height: VIEW_H * 0.35 + Math.random() * VIEW_H * 0.2,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.6 + Math.random() * 0.5,
+        swayAmt: 12 + Math.random() * 12,
+        hue: 140 + Math.random() * 40,
+      });
+    }
+  }
+
+  function initAmbientFish() {
+    ambientFish = [];
+    // 8 background micro-fish drifting across the scene.
+    for (let i = 0; i < 8; i++) {
+      ambientFish.push({
+        x: Math.random() * VIEW_W,
+        y: 80 + Math.random() * Math.max(120, VIEW_H - 160),
+        vx: (Math.random() < 0.5 ? -1 : 1) * (0.15 + Math.random() * 0.35),
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 1 + Math.random() * 1.5,
+        size: 1.5 + Math.random() * 1.5,
+        alpha: 0.25 + Math.random() * 0.25,
+      });
+    }
+  }
+
+  // Linear interp + wrap-aware segment interp.
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function lerpSegment(start, end, t) {
+    // If start->end is a big jump, the segment wrapped; snap rather than draw across the world.
+    if (Math.abs(end.x - start.x) > 1.5 || Math.abs(end.y - start.y) > 1.5) {
+      return { x: end.x, y: end.y };
+    }
+    return { x: lerp(start.x, end.x, t), y: lerp(start.y, end.y, t) };
+  }
+  function snakeProgress(snake, now) {
+    return Math.max(0, Math.min(1, (now - snake.lastTickAt) / snake.tickIntervalMs));
+  }
+  // Resolves the visible position of segment i for rendering.
+  function snakeSegmentAt(snake, i, progress) {
+    const end = snake.body[i];
+    const start = (snake.prevBody && i < snake.prevBody.length) ? snake.prevBody[i] : end;
+    return lerpSegment(start, end, progress);
+  }
+
+  function currentPlayerIntervalMs() {
+    const cfg = currentLevelConfig();
+    let speed = baseSpeed + cfg.speedBonus + Math.min(4, score / 200);
+    if (activeBoost > 0) speed *= 1.7;
+    return 1000 / speed;
+  }
+
+  function wrap(p) {
+    return { x: (p.x + COLS) % COLS, y: (p.y + ROWS) % ROWS };
+  }
+
+  function occupied(x, y) {
+    if (player.body.some(s => s.x===x && s.y===y)) return true;
+    if (foods.some(f => f.x===x && f.y===y)) return true;
+    if (powerups && powerups.some(p => p.x===x && p.y===y)) return true;
+    if (obstacles && obstacles.some(o => o.x===x && o.y===y)) return true;
+    if (urchins && urchins.some(u => u.x===x && u.y===y)) return true;
+    return false;
+  }
+
+  function spawnFood(x, y) {
+    // Pearl chance depends on whether the current level allows them.
+    const cfg = currentLevelConfig();
+    const isPearl = cfg.pearls && Math.random() < 0.125;
+    const kind = isPearl ? 'pearl' : 'fish';
+    if (x !== undefined && y !== undefined) {
+      if (!occupied(x, y) && x>=0 && x<COLS && y>=0 && y<ROWS) {
+        foods.push({ x, y, kind, wobble: Math.random() * Math.PI * 2 });
+        return;
+      }
+    }
+    let tries = 0;
+    while (tries++ < 200) {
+      const fx = Math.floor(Math.random() * COLS);
+      const fy = Math.floor(Math.random() * ROWS);
+      if (!occupied(fx, fy)) {
+        foods.push({ x: fx, y: fy, kind, wobble: Math.random() * Math.PI * 2 });
+        return;
+      }
+    }
+  }
+
+  function spawnPowerup() {
+    if (powerups.length > 0) return;
+    const cfg = currentLevelConfig();
+    if (!cfg.powerups) return;
+    const types = ['boost', 'shield'];
+    const kind = types[Math.floor(Math.random() * types.length)];
+    let tries = 0;
+    while (tries++ < 200) {
+      const x = Math.floor(Math.random() * COLS);
+      const y = Math.floor(Math.random() * ROWS);
+      if (!occupied(x, y)) {
+        powerups.push({ x, y, kind, ttl: 12, born: performance.now() / 1000 });
+        return;
+      }
+    }
+  }
+
+  function updateHud() {
+    scoreEl.textContent = String(score).padStart(4, '0');
+    bestEl.textContent = String(bestScore).padStart(4, '0');
+    const youLen = player ? player.body.length : 0;
+    youLenEl.textContent = youLen;
+    const cfg = currentLevelConfig();
+    levelTextEl.textContent = `LVL ${currentLevel}`;
+    levelProgEl.textContent = fishEatenThisLevel;
+    levelGoalEl.textContent = cfg.goal;
+    const pct = Math.min(100, (fishEatenThisLevel / cfg.goal) * 100);
+    levelFillEl.style.width = pct + '%';
+    levelNameEl.textContent = `LEVEL ${currentLevel} · ${cfg.name}`;
+  }
+
+  function setPlayerDir(nx, ny) {
+    if (player.body.length > 1 && nx === -player.dir.x && ny === -player.dir.y) return;
+    player.nextDir = { x: nx, y: ny };
+  }
+
+  // Rotate the snake's heading 90° clockwise (right turn).
+  function turnClockwise() {
+    const d = player.nextDir;
+    player.nextDir = { x: -d.y, y: d.x };
+  }
+  // Rotate the snake's heading 90° counter-clockwise (left turn).
+  function turnCounterClockwise() {
+    const d = player.nextDir;
+    player.nextDir = { x: d.y, y: -d.x };
+  }
+
+  function tickPlayer() {
+    // Snapshot for smooth interpolation in render.
+    player.prevBody = player.body.map(s => ({ ...s }));
+    player.lastTickAt = performance.now();
+    player.tickIntervalMs = currentPlayerIntervalMs();
+
+    player.dir = player.nextDir;
+
+    // Compute candidate head, then check for a current under it that nudges further.
+    let head = wrap({
+      x: player.body[0].x + player.dir.x,
+      y: player.body[0].y + player.dir.y,
+    });
+    // If the *previous* head was on a current, it pushes you in that direction on top of your move.
+    // But that feels wrong (you can't fight it from inside). Instead, the cell you LAND on may push you one extra step.
+    const enteringCurrent = currents.find(c => c.x === head.x && c.y === head.y);
+    if (enteringCurrent) {
+      head = wrap({ x: head.x + enteringCurrent.dx, y: head.y + enteringCurrent.dy });
+    }
+
+    // Self-collision
+    if (player.body.some(s => s.x===head.x && s.y===head.y)) {
+      if (activeShield > 0) {
+        activeShield = 0;
+        sfx.shieldBreak();
+        shake(8, 0.3);
+        const sx = head.x * CELL + CELL/2, sy = head.y * CELL + CELL/2;
+        spawnParticles(sx, sy, '#c389ff', 22, 1.4);
+        spawnFloatingText(sx, sy - 8, 'SHIELD BROKEN', '#c389ff');
+      } else {
+        return gameOver('self');
+      }
+    }
+
+    // Rock collision — shield can save
+    if (obstacles.some(o => o.x===head.x && o.y===head.y)) {
+      if (activeShield > 0) {
+        activeShield = 0;
+        sfx.shieldBreak();
+        shake(8, 0.3);
+        const sx = head.x * CELL + CELL/2, sy = head.y * CELL + CELL/2;
+        spawnParticles(sx, sy, '#c389ff', 22, 1.4);
+        spawnFloatingText(sx, sy - 8, 'SHIELD BROKEN', '#c389ff');
+        // Bounce back: don't add the head this tick.
+        // Tail still progresses if no growth pending.
+        if (player.pendingGrowth > 0) player.pendingGrowth -= 1;
+        else player.body.pop();
+        return;
+      }
+      return gameOver('rock');
+    }
+
+    // Urchin collision — lethal, no save
+    if (urchins.some(u => u.x===head.x && u.y===head.y)) {
+      return gameOver('urchin');
+    }
+
+    player.body.unshift(head);
+
+    const px = head.x * CELL + CELL/2;
+    const py = head.y * CELL + CELL/2;
+
+    // Pickup: power-up?
+    const pi = powerups.findIndex(p => p.x===head.x && p.y===head.y);
+    if (pi >= 0) {
+      const pu = powerups[pi];
+      powerups.splice(pi, 1);
+      activatePowerup(pu.kind, px, py);
+    }
+
+    // Pickup: food?
+    const fi = foods.findIndex(f => f.x===head.x && f.y===head.y);
+    if (fi >= 0) {
+      const food = foods[fi];
+      foods.splice(fi, 1);
+      const now = performance.now();
+      if (now - lastEatTime < 3000) combo++; else combo = 1;
+      lastEatTime = now;
+      const mult = Math.min(5, 1 + Math.floor((combo - 1) / 2));
+      const basePts = food.kind === 'pearl' ? 30 : 10;
+      const grow    = food.kind === 'pearl' ? 2 : 1;
+      const gained  = basePts * mult;
+      score += gained;
+      fishEatenThisLevel += 1;
+      player.pendingGrowth += grow;
+      if (score > bestScore) { bestScore = score; saveBest(); }
+      // FX
+      if (food.kind === 'pearl') {
+        sfx.eatPearl();
+        spawnParticles(px, py, '#ffffff', 14, 1.2);
+        spawnParticles(px, py, '#ffd860', 8, 1.0);
+      } else {
+        sfx.eatFish();
+        spawnParticles(px, py, '#ffd860', 8);
+      }
+      if (combo >= 2) {
+        sfx.combo(combo);
+        spawnFloatingText(px, py - 8, `x${mult}  +${gained}`, '#ffd860');
+      }
+
+      // Check level-complete BEFORE spawning new food.
+      const cfg = currentLevelConfig();
+      if (fishEatenThisLevel >= cfg.goal) {
+        return advanceLevel();
+      }
+
+      spawnFood();
+      if (Math.random() < 0.06) spawnPowerup();
+    } else {
+      if (combo > 0 && performance.now() - lastEatTime > 3000) combo = 0;
+    }
+
+    // Resolve growth.
+    if (player.pendingGrowth > 0) {
+      player.pendingGrowth -= 1;
+    } else {
+      player.body.pop();
+    }
+  }
+
+  function advanceLevel() {
+    const wasFinalLevel = currentLevel === MAX_LEVEL;
+    currentLevel += 1;
+    fishEatenThisLevel = 0;
+    sfx.levelUp();
+    shake(wasFinalLevel ? 12 : 6, wasFinalLevel ? 0.7 : 0.4);
+    // Big sparkle around the player's head.
+    const h = player.body[0];
+    const px = h.x * CELL + CELL/2, py = h.y * CELL + CELL/2;
+    spawnParticles(px, py, '#ffd860', wasFinalLevel ? 60 : 28, 1.5);
+    spawnParticles(px, py, '#5cf6ff', wasFinalLevel ? 40 : 18, 1.2);
+    spawnFloatingText(px, py - 12, wasFinalLevel ? 'VICTORY!' : 'LEVEL UP!', '#ffd860');
+    // Bonus points: +50 per level, +500 finale bonus.
+    score += wasFinalLevel ? 500 : 50;
+    if (score > bestScore) { bestScore = score; saveBest(); }
+
+    if (wasFinalLevel) {
+      // Show a special victory banner (longer) but keep playing in endless mode.
+      victoryBannerUntil = performance.now() + 4500;
+      // Extra fireworks across the canvas
+      for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+          const fx = 80 + Math.random() * 440;
+          const fy = 80 + Math.random() * 440;
+          spawnParticles(fx, fy, '#ffd860', 30, 1.4);
+          spawnParticles(fx, fy, '#5cf6ff', 20, 1.2);
+          sfx.combo(8);
+        }, i * 350);
+      }
+    }
+
+    buildLevel();
+    updateHud();
+  }
+
+  function activatePowerup(kind, px, py) {
+    sfx.powerup();
+    spawnParticles(px, py, kind === 'boost' ? '#5cf6ff' : '#c389ff', 24, 1.6);
+    if (kind === 'boost') {
+      activeBoost = 3500;
+      spawnFloatingText(px, py - 8, 'SPEED BOOST', '#5cf6ff');
+    } else if (kind === 'shield') {
+      activeShield = 6000;
+      spawnFloatingText(px, py - 8, 'SHIELD', '#c389ff');
+    }
+  }
+
+  function gameOver(cause) {
+    state = 'over';
+    // Death FX: big bubble explosion at player head.
+    if (player && player.body[0]) {
+      const h = player.body[0];
+      const px = h.x * CELL + CELL/2, py = h.y * CELL + CELL/2;
+      spawnParticles(px, py, '#5cf6ff', 30, 2.0);
+      spawnParticles(px, py, '#b8feff', 20, 1.2);
+    }
+    sfx.die();
+    shake(14, 0.6);
+    if (score > bestScore) { bestScore = score; saveBest(); }
+    const causes = {
+      self:   ['CONSUMED YOURSELF',   'You bit your own tail.'],
+      rock:   ['CRASHED INTO STONE',  'You struck a coral rock.'],
+      urchin: ['STUNG TO DEATH',      'A toxic urchin caught you.'],
+    };
+    const [title, msg] = causes[cause] || causes.self;
+    ovTitle.textContent = title;
+    ovTitle.classList.add('danger');
+    ovMsg.innerHTML = `${msg}<br><br>Level reached: <b>${currentLevel}</b><br>Score: <b>${score}</b><br>Length: ${player.body.length}`;
+    startBtn.textContent = '▼ DIVE AGAIN';
+    ovHint.textContent = 'PRESS ANY KEY';
+    overlay.classList.remove('hidden');
+  }
+
+  function draw() {
+    ctx.save();
+    // Screen shake
+    if (shakeTime > 0 && shakeMag > 0) {
+      const sx = (Math.random() - 0.5) * shakeMag;
+      const sy = (Math.random() - 0.5) * shakeMag;
+      ctx.translate(sx, sy);
+    }
+
+    ctx.clearRect(-20, -20, VIEW_W + 40, VIEW_H + 40);
+
+    const t = performance.now() / 1000;
+
+    // Layered background gradient — sky-bright at top fading to abyssal black at bottom.
+    const bg = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+    bg.addColorStop(0, '#0d3a6b');
+    bg.addColorStop(0.4, '#082c52');
+    bg.addColorStop(1, '#01060f');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+    // Caustics: sweeping light shimmer from above, in and out.
+    drawCaustics(t);
+
+    // Distant ambient fish drift across the back layer.
+    drawAmbientFish(t);
+
+    // Kelp strands sway in the current near the bottom edges.
+    drawKelp(t);
+
+    drawBubbles();
+
+    // Currents (background-ish: under foods and player but over kelp).
+    drawCurrents(t);
+
+    // Player's bioluminescent glow lights up the surrounding area.
+    drawPlayerLight(t);
+
+    // Rocks underneath food/snake so the snake clearly overlaps them visually if shielded.
+    obstacles.forEach(o => drawRock(o, t));
+    urchins.forEach(u => drawUrchin(u, t));
+
+    foods.forEach(f => drawFood(f, t));
+    powerups.forEach(p => drawPowerup(p, t));
+
+    drawSnake(player, activeBoost > 0 ? '#aef9ff' : '#5cf6ff', '#b8feff', false);
+
+    // Shield aura — pulsing purple bubble around the head while active.
+    if (activeShield > 0) {
+      const now = performance.now();
+      const head = snakeSegmentAt(player, 0, snakeProgress(player, now));
+      const sx = head.x * CELL + CELL/2;
+      const sy = head.y * CELL + CELL/2;
+      const pulse = 0.7 + 0.3 * Math.sin(t * 6);
+      const alpha = Math.min(1, activeShield / 1000); // fade out in final second
+      ctx.save();
+      ctx.globalAlpha = 0.55 * alpha;
+      ctx.strokeStyle = '#c389ff';
+      ctx.shadowColor = '#c389ff';
+      ctx.shadowBlur = 20;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(sx, sy, CELL * 0.85 * pulse, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.15 * alpha;
+      ctx.fillStyle = '#c389ff';
+      ctx.beginPath();
+      ctx.arc(sx, sy, CELL * 0.85 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    drawParticles();
+    drawFloatingTexts();
+    drawComboBadge();
+    drawActiveBuffs();
+    drawLevelBanner();
+
+    // Heavy vignette to focus attention on play.
+    const vg = ctx.createRadialGradient(VIEW_W/2, VIEW_H/2, Math.min(VIEW_W, VIEW_H) * 0.37, VIEW_W/2, VIEW_H/2, Math.max(VIEW_W, VIEW_H) * 0.77);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.7)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+    // HUD always drawn last (on top of vignette).
+    drawHUD();
+
+    ctx.restore();
+  }
+
+  // In-canvas HUD: score / best on the left, level + progress bar at top center,
+  // length on the right. All drawn inside the play field.
+  function drawHUD() {
+    ctx.save();
+    ctx.textBaseline = 'top';
+    ctx.shadowBlur = 0;
+
+    const pad = Math.max(10, Math.min(20, VIEW_W * 0.018));
+    const small = Math.max(9, Math.min(12, VIEW_W * 0.012));
+    const big = Math.max(20, Math.min(34, VIEW_W * 0.030));
+
+    // Top-left: DEPTH (score) + BEST
+    ctx.textAlign = 'left';
+    ctx.font = `${small}px 'DM Mono', monospace`;
+    ctx.fillStyle = 'rgba(220,234,242,0.55)';
+    ctx.fillText('DEPTH', pad, pad);
+    ctx.font = `500 ${big}px 'DM Mono', monospace`;
+    ctx.fillStyle = '#5cf6ff';
+    ctx.shadowColor = '#5cf6ff';
+    ctx.shadowBlur = 8;
+    ctx.fillText(String(score).padStart(4, '0'), pad, pad + small + 4);
+    ctx.shadowBlur = 0;
+    ctx.font = `${small}px 'DM Mono', monospace`;
+    ctx.fillStyle = 'rgba(220,234,242,0.55)';
+    ctx.fillText('BEST', pad, pad + small + big + 8);
+    ctx.fillStyle = '#ffd860';
+    ctx.shadowColor = '#ffd860';
+    ctx.shadowBlur = 6;
+    ctx.fillText(String(bestScore).padStart(4, '0'), pad + small * 4.5, pad + small + big + 8);
+    ctx.shadowBlur = 0;
+
+    // Top-right: LENGTH
+    ctx.textAlign = 'right';
+    ctx.font = `${small}px 'DM Mono', monospace`;
+    ctx.fillStyle = 'rgba(220,234,242,0.55)';
+    ctx.fillText('LENGTH', VIEW_W - pad, pad);
+    ctx.font = `500 ${big}px 'DM Mono', monospace`;
+    ctx.fillStyle = '#5cf6ff';
+    ctx.shadowColor = '#5cf6ff';
+    ctx.shadowBlur = 8;
+    ctx.fillText(String(player ? player.body.length : 0), VIEW_W - pad, pad + small + 4);
+    ctx.shadowBlur = 0;
+
+    // Top-center: ABYSS title + level name
+    const title = 'ABYSS';
+    const titleFontSize = Math.max(18, Math.min(30, VIEW_W * 0.028));
+    ctx.textAlign = 'center';
+    ctx.font = `700 ${titleFontSize}px 'Cinzel', serif`;
+    ctx.fillStyle = '#b8feff';
+    ctx.shadowColor = '#5cf6ff';
+    ctx.shadowBlur = 12;
+    ctx.fillText(title, VIEW_W / 2, pad);
+    ctx.shadowBlur = 0;
+
+    const cfg = currentLevelConfig();
+    ctx.font = `${small}px 'DM Mono', monospace`;
+    ctx.fillStyle = '#ff86a5';
+    ctx.shadowColor = 'rgba(255,46,106,0.6)';
+    ctx.shadowBlur = 6;
+    ctx.fillText(`LEVEL ${currentLevel} · ${cfg.name}`, VIEW_W / 2, pad + titleFontSize + 4);
+    ctx.shadowBlur = 0;
+
+    // Center bottom of the title: progress bar
+    const barY = pad + titleFontSize + small + 14;
+    const barW = Math.min(360, VIEW_W * 0.4);
+    const barH = 6;
+    const barX = (VIEW_W - barW) / 2;
+    // Track
+    ctx.fillStyle = 'rgba(92,246,255,0.08)';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.strokeStyle = 'rgba(92,246,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX + 0.5, barY + 0.5, barW - 1, barH - 1);
+    // Fill
+    const pct = Math.max(0, Math.min(1, fishEatenThisLevel / cfg.goal));
+    if (pct > 0) {
+      const fillW = Math.max(2, (barW - 2) * pct);
+      const fg = ctx.createLinearGradient(barX, 0, barX + fillW, 0);
+      fg.addColorStop(0, '#5cf6ff');
+      fg.addColorStop(1, '#b8feff');
+      ctx.fillStyle = fg;
+      ctx.shadowColor = '#5cf6ff';
+      ctx.shadowBlur = 8;
+      ctx.fillRect(barX + 1, barY + 1, fillW, barH - 2);
+      ctx.shadowBlur = 0;
+    }
+    // Label under the bar
+    ctx.font = `${small}px 'DM Mono', monospace`;
+    ctx.fillStyle = '#ffd860';
+    ctx.shadowColor = 'rgba(255,216,96,0.5)';
+    ctx.shadowBlur = 5;
+    ctx.fillText(`${fishEatenThisLevel} / ${cfg.goal}`, VIEW_W / 2, barY + barH + 4);
+
+    ctx.restore();
+  }
+
+  // Subtle light caustics — soft, additive bands that drift slowly.
+  function drawCaustics(t) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    // Three moving diagonal beams of light from above.
+    const beams = [
+      { angle: 1.25, speed: 0.20, width: 220, alpha: 0.06 },
+      { angle: 1.10, speed: 0.13, width: 320, alpha: 0.05 },
+      { angle: 1.40, speed: 0.27, width: 160, alpha: 0.07 },
+    ];
+    for (const b of beams) {
+      const cosA = Math.cos(b.angle), sinA = Math.sin(b.angle);
+      // Position oscillates across the canvas.
+      const center = VIEW_W/2 + Math.sin(t * b.speed) * (VIEW_W * 0.4);
+      ctx.save();
+      ctx.translate(center, 0);
+      ctx.rotate(b.angle - Math.PI/2);
+      const grad = ctx.createLinearGradient(-b.width, 0, b.width, 0);
+      grad.addColorStop(0, 'rgba(140, 220, 255, 0)');
+      grad.addColorStop(0.5, `rgba(170, 230, 255, ${b.alpha})`);
+      grad.addColorStop(1, 'rgba(140, 220, 255, 0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(-b.width, -800, b.width * 2, 1600);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawAmbientFish(t) {
+    ctx.save();
+    for (const f of ambientFish) {
+      f.x += f.vx;
+      if (f.vx > 0 && f.x > VIEW_W + 20) { f.x = -20; f.y = 80 + Math.random() * Math.max(120, VIEW_H - 160); }
+      if (f.vx < 0 && f.x < -20) { f.x = VIEW_W + 20; f.y = 80 + Math.random() * Math.max(120, VIEW_H - 160); }
+      const wob = Math.sin(t * f.wobbleSpeed + f.wobble) * 6;
+      const dir = f.vx > 0 ? 1 : -1;
+      ctx.globalAlpha = f.alpha;
+      ctx.fillStyle = '#a8d8ff';
+      ctx.shadowColor = '#a8d8ff';
+      ctx.shadowBlur = 4;
+      ctx.beginPath();
+      ctx.ellipse(f.x, f.y + wob, f.size * 1.6, f.size * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Tail
+      ctx.beginPath();
+      ctx.moveTo(f.x - dir * f.size * 1.5, f.y + wob);
+      ctx.lineTo(f.x - dir * f.size * 2.6, f.y + wob - f.size);
+      ctx.lineTo(f.x - dir * f.size * 2.6, f.y + wob + f.size);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawKelp(t) {
+    ctx.save();
+    for (const k of kelpStrands) {
+      const segments = 14;
+      const segH = k.height / segments;
+      ctx.shadowColor = `hsl(${k.hue}, 70%, 30%)`;
+      ctx.shadowBlur = 8;
+      // Two strokes: dark base + lighter highlight
+      for (let pass = 0; pass < 2; pass++) {
+        ctx.strokeStyle = pass === 0
+          ? `hsla(${k.hue}, 65%, 18%, 0.85)`
+          : `hsla(${k.hue + 10}, 70%, 38%, 0.5)`;
+        ctx.lineWidth = pass === 0 ? 7 : 2.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        for (let i = 0; i <= segments; i++) {
+          const yProg = i / segments;
+          const x = k.rootX + Math.sin(t * k.speed + k.phase + yProg * 2.5) * k.swayAmt * yProg;
+          const y = VIEW_H - segH * i;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+      // Frond leaves at random heights along the strand
+      ctx.fillStyle = `hsla(${k.hue}, 70%, 30%, 0.6)`;
+      for (let i = 4; i <= segments - 1; i += 3) {
+        const yProg = i / segments;
+        const cx = k.rootX + Math.sin(t * k.speed + k.phase + yProg * 2.5) * k.swayAmt * yProg;
+        const cy = VIEW_H - segH * i;
+        const sideSign = (i % 2 === 0) ? 1 : -1;
+        ctx.beginPath();
+        ctx.ellipse(cx + sideSign * 6, cy, 10, 4, sideSign * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawPlayerLight(t) {
+    if (!player || player.body.length === 0) return;
+    const now = performance.now();
+    const head = snakeSegmentAt(player, 0, snakeProgress(player, now));
+    const cx = head.x * CELL + CELL / 2;
+    const cy = head.y * CELL + CELL / 2;
+    const radius = activeBoost > 0 ? 220 : 170;
+    const flicker = 0.92 + 0.08 * Math.sin(t * 6);
+    const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, radius);
+    grad.addColorStop(0, `rgba(92, 246, 255, ${0.30 * flicker})`);
+    grad.addColorStop(0.5, `rgba(92, 246, 255, ${0.10 * flicker})`);
+    grad.addColorStop(1, 'rgba(92, 246, 255, 0)');
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    ctx.restore();
+  }
+
+  function drawParticles() {
+    ctx.save();
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawFloatingTexts() {
+    ctx.save();
+    ctx.font = 'bold 14px Cinzel, serif';
+    ctx.textAlign = 'center';
+    for (const f of floatingTexts) {
+      ctx.globalAlpha = Math.max(0, f.life);
+      ctx.fillStyle = f.color;
+      ctx.shadowColor = f.color;
+      ctx.shadowBlur = 8;
+      ctx.fillText(f.text, f.x, f.y);
+    }
+    ctx.restore();
+  }
+
+  function drawComboBadge() {
+    if (combo < 2) return;
+    const mult = Math.min(5, 1 + Math.floor((combo - 1) / 2));
+    if (mult < 2) return;
+    ctx.save();
+    const fontSize = Math.max(20, Math.min(32, VIEW_W * 0.030));
+    ctx.font = `bold ${fontSize}px Cinzel, serif`;
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ffd860';
+    ctx.shadowColor = '#ffd860';
+    ctx.shadowBlur = 12;
+    const pulse = 1 + 0.08 * Math.sin(performance.now() / 80);
+    // Anchor below the top-right LENGTH HUD block.
+    ctx.translate(VIEW_W - 16, 110);
+    ctx.scale(pulse, pulse);
+    ctx.fillText(`x${mult} COMBO`, 0, 0);
+    ctx.restore();
+  }
+
+  function drawActiveBuffs() {
+    if (activeBoost <= 0 && activeShield <= 0) return;
+    ctx.save();
+    ctx.font = '11px DM Mono, monospace';
+    ctx.textAlign = 'left';
+    // Below the top-left DEPTH/BEST block.
+    let y = 120;
+    if (activeBoost > 0) {
+      ctx.fillStyle = '#5cf6ff';
+      ctx.shadowColor = '#5cf6ff';
+      ctx.shadowBlur = 8;
+      ctx.fillText(`▶ BOOST  ${(activeBoost / 1000).toFixed(1)}s`, 14, y);
+      y += 16;
+    }
+    if (activeShield > 0) {
+      ctx.fillStyle = '#c389ff';
+      ctx.shadowColor = '#c389ff';
+      ctx.shadowBlur = 8;
+      ctx.fillText(`◇ SHIELD  ${(activeShield / 1000).toFixed(1)}s`, 14, y);
+    }
+    ctx.restore();
+  }
+
+  function drawPowerup(p, t) {
+    const cx = p.x * CELL + CELL/2;
+    const cy = p.y * CELL + CELL/2;
+    const pulse = 0.6 + 0.4 * Math.sin(t * 4);
+    const color = p.kind === 'boost' ? '#5cf6ff' : '#c389ff';
+    const lightColor = p.kind === 'boost' ? '#caffff' : '#f0d8ff';
+    ctx.save();
+
+    // Spinning aura ring
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 20 + pulse * 12;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.5;
+    for (let i = 0; i < 3; i++) {
+      const a = t * 1.5 + i * Math.PI * 2 / 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, CELL * 0.40, a, a + Math.PI * 0.7);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    if (p.kind === 'boost') {
+      // Triangular orb spinning
+      const r = CELL * 0.32 * (0.95 + pulse * 0.1);
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      grad.addColorStop(0, lightColor);
+      grad.addColorStop(0.7, color);
+      grad.addColorStop(1, '#1a8aa8');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      for (let i = 0; i < 3; i++) {
+        const a = -Math.PI/2 + i * (Math.PI * 2 / 3) + t * 1.5;
+        const x = cx + Math.cos(a) * r;
+        const y = cy + Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      // Inner spark
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(cx, cy, CELL * 0.06, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Shield orb: domed bubble with a cross emblem.
+      const r = CELL * 0.34;
+      const grad = ctx.createRadialGradient(cx - r*0.3, cy - r*0.3, 0, cx, cy, r);
+      grad.addColorStop(0, lightColor);
+      grad.addColorStop(0.6, color);
+      grad.addColorStop(1, '#3a1d6a');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      // Highlight specular
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.beginPath();
+      ctx.ellipse(cx - r * 0.35, cy - r * 0.35, r * 0.32, r * 0.18, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Shield emblem (plus / cross)
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - CELL * 0.15);
+      ctx.lineTo(cx, cy + CELL * 0.15);
+      ctx.moveTo(cx - CELL * 0.12, cy);
+      ctx.lineTo(cx + CELL * 0.12, cy);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawFood(f, t) {
+    if (f.kind === 'pearl') drawPearl(f, t);
+    else drawFish(f, t);
+  }
+
+  function drawPearl(f, t) {
+    const cx = f.x * CELL + CELL/2;
+    const cy = f.y * CELL + CELL/2;
+    const pulse = 0.5 + 0.5 * Math.sin(t * 3 + f.wobble);
+    ctx.save();
+
+    // Outer halo (rotating gold rays)
+    ctx.shadowColor = '#ffd860';
+    ctx.shadowBlur = 14 + pulse * 8;
+    ctx.globalAlpha = 0.25 + pulse * 0.25;
+    ctx.fillStyle = '#ffd860';
+    for (let i = 0; i < 6; i++) {
+      const a = t * 0.8 + i * (Math.PI * 2 / 6);
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, CELL * 0.42, CELL * 0.10, a, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Iridescent core: layered offset gradients
+    ctx.globalAlpha = 1;
+    const core = ctx.createRadialGradient(
+      cx - CELL * 0.06, cy - CELL * 0.06, 0,
+      cx, cy, CELL * 0.30
+    );
+    core.addColorStop(0, '#ffffff');
+    core.addColorStop(0.4, '#e0f6ff');
+    core.addColorStop(0.7, '#c4e5ff');
+    core.addColorStop(1, '#7fb8e8');
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 18 + pulse * 10;
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(cx, cy, CELL * 0.26, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Highlight specular dot
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath();
+    ctx.arc(cx - CELL * 0.08, cy - CELL * 0.08, CELL * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawBubbles() {
+    ctx.save();
+    for (const b of bubbles) {
+      b.y -= b.vy;
+      b.sway += 0.02;
+      const x = b.x + Math.sin(b.sway * b.swaySpeed) * 6;
+      if (b.y < -10) { b.y = VIEW_H + 10; b.x = Math.random() * VIEW_W; }
+      ctx.beginPath();
+      ctx.arc(x, b.y, b.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(180,240,255,0.18)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(180,240,255,0.3)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawFish(f, t) {
+    const cx = f.x * CELL + CELL/2;
+    const cy = f.y * CELL + CELL/2 + Math.sin(t * 2 + f.wobble) * 1.5;
+    // Tail wiggle phase
+    const wiggle = Math.sin(t * 7 + f.wobble) * 0.5;
+    ctx.save();
+
+    // Soft underglow
+    ctx.shadowColor = '#ffd860';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = '#fff0a8';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, CELL * 0.34, CELL * 0.20, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body — gradient gold
+    const bodyGrad = ctx.createLinearGradient(cx - CELL*0.3, cy, cx + CELL*0.3, cy);
+    bodyGrad.addColorStop(0, '#c89030');
+    bodyGrad.addColorStop(0.5, '#ffd860');
+    bodyGrad.addColorStop(1, '#fff3a8');
+    ctx.shadowBlur = 8;
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, CELL * 0.30, CELL * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tail — animated
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#c89030';
+    ctx.beginPath();
+    const tailX = cx - CELL * 0.3;
+    const tipX = tailX - CELL * 0.22;
+    const tipYTop = cy - CELL * 0.16 + wiggle * 4;
+    const tipYBot = cy + CELL * 0.16 + wiggle * 4;
+    ctx.moveTo(tailX, cy);
+    ctx.quadraticCurveTo(tailX - CELL * 0.06, cy + wiggle * 3, tipX, tipYTop);
+    ctx.lineTo(tipX, tipYBot);
+    ctx.quadraticCurveTo(tailX - CELL * 0.06, cy + wiggle * 3, tailX, cy);
+    ctx.closePath();
+    ctx.fill();
+
+    // Top fin
+    ctx.fillStyle = '#a87320';
+    ctx.beginPath();
+    ctx.moveTo(cx - CELL * 0.06, cy - CELL * 0.16);
+    ctx.lineTo(cx + CELL * 0.04, cy - CELL * 0.26);
+    ctx.lineTo(cx + CELL * 0.10, cy - CELL * 0.16);
+    ctx.closePath();
+    ctx.fill();
+
+    // Eye
+    ctx.fillStyle = '#01040a';
+    ctx.beginPath();
+    ctx.arc(cx + CELL * 0.16, cy - CELL * 0.04, 1.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(cx + CELL * 0.18, cy - CELL * 0.06, 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // ---- Hazards & environment renderers ----
+
+  function drawRock(o, t) {
+    const cx = o.x * CELL + CELL/2;
+    const cy = o.y * CELL + CELL/2;
+    ctx.save();
+    // Cast shadow underneath
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + CELL * 0.34, CELL * 0.42, CELL * 0.10, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Rock body: jagged polygon, gradient-filled
+    const grad = ctx.createLinearGradient(cx, cy - CELL * 0.42, cx, cy + CELL * 0.42);
+    grad.addColorStop(0, '#5e6470');
+    grad.addColorStop(0.55, '#3a4250');
+    grad.addColorStop(1, '#1d2230');
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = '#1a1f2a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const points = 7;
+    for (let i = 0; i < points; i++) {
+      const a = (i / points) * Math.PI * 2 + Math.sin(o.seed) * 0.4;
+      // Deterministic per-rock radius variation
+      const r = CELL * (0.35 + 0.10 * Math.sin(o.seed + i * 1.3));
+      const x = cx + Math.cos(a) * r;
+      const y = cy + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Highlight on top edge
+    ctx.fillStyle = 'rgba(180,200,220,0.18)';
+    ctx.beginPath();
+    ctx.ellipse(cx - CELL * 0.08, cy - CELL * 0.16, CELL * 0.18, CELL * 0.06, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawUrchin(u, t) {
+    const cx = u.x * CELL + CELL/2;
+    const cy = u.y * CELL + CELL/2;
+    const pulse = 0.85 + 0.15 * Math.sin(t * 3 + u.phase);
+    ctx.save();
+    // Dim warning glow
+    ctx.shadowColor = '#ff2e6a';
+    ctx.shadowBlur = 18 * pulse;
+    // Spines
+    ctx.strokeStyle = '#1a1f2a';
+    ctx.lineWidth = 1.4;
+    ctx.lineCap = 'round';
+    const spines = 14;
+    for (let i = 0; i < spines; i++) {
+      const a = (i / spines) * Math.PI * 2 + t * 0.4;
+      const r1 = CELL * 0.16;
+      const r2 = CELL * (0.36 + 0.04 * Math.sin(t * 2 + i));
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+      ctx.stroke();
+    }
+    // Body
+    const grad = ctx.createRadialGradient(cx - 2, cy - 2, 0, cx, cy, CELL * 0.20);
+    grad.addColorStop(0, '#6a1a3a');
+    grad.addColorStop(0.7, '#2a0a1a');
+    grad.addColorStop(1, '#0a0306');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, CELL * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    // Hot red center
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#ff2e6a';
+    ctx.beginPath();
+    ctx.arc(cx, cy, CELL * 0.06 * pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawCurrents(t) {
+    if (!currents || currents.length === 0) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    for (const c of currents) {
+      const cx = c.x * CELL + CELL/2;
+      const cy = c.y * CELL + CELL/2;
+      // Flow phase per-cell
+      const phase = (t * 1.8 + c.x * 0.3 + c.y * 0.3) % 1;
+      ctx.globalAlpha = 0.22;
+      ctx.fillStyle = 'rgba(120, 200, 255, 1)';
+      // Arrow streaks moving in the current's direction
+      for (let s = 0; s < 3; s++) {
+        const p = (phase + s / 3) % 1;
+        const tx = cx - c.dx * CELL * 0.4 + c.dx * CELL * 0.8 * p;
+        const ty = cy - c.dy * CELL * 0.4 + c.dy * CELL * 0.8 * p;
+        const sz = (1 - Math.abs(p - 0.5) * 2) * CELL * 0.20;
+        ctx.beginPath();
+        if (c.dx !== 0) {
+          ctx.ellipse(tx, ty, sz * 1.2, sz * 0.4, 0, 0, Math.PI * 2);
+        } else {
+          ctx.ellipse(tx, ty, sz * 0.4, sz * 1.2, 0, 0, Math.PI * 2);
+        }
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawLevelBanner() {
+    const now = performance.now();
+
+    // Special victory banner takes precedence and is more dramatic.
+    if (now < victoryBannerUntil) {
+      const remaining = victoryBannerUntil - now;
+      const total = 4500;
+      const elapsed = total - remaining;
+      let alpha = 1;
+      if (elapsed < 400) alpha = elapsed / 400;
+      else if (remaining < 800) alpha = remaining / 800;
+      const pulse = 1 + 0.04 * Math.sin(now / 80);
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      const bandH = 160;
+      const bandY = (VIEW_H - bandH) / 2;
+      // Gold-rimmed banner band
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0, bandY, VIEW_W, bandH);
+      ctx.strokeStyle = 'rgba(255,216,96,0.85)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, bandY); ctx.lineTo(VIEW_W, bandY);
+      ctx.moveTo(0, bandY + bandH); ctx.lineTo(VIEW_W, bandY + bandH);
+      ctx.stroke();
+
+      // Title
+      ctx.translate(VIEW_W/2, VIEW_H/2);
+      ctx.scale(pulse, pulse);
+      ctx.font = 'bold 54px Cinzel, serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd860';
+      ctx.shadowColor = '#ffd860';
+      ctx.shadowBlur = 26;
+      ctx.fillText('VICTORY', 0, 0);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+      // Subtitle
+      ctx.font = '15px DM Mono, monospace';
+      ctx.fillStyle = '#dceaf2';
+      ctx.shadowColor = '#5cf6ff';
+      ctx.shadowBlur = 10;
+      ctx.fillText('You conquered the abyss.', VIEW_W/2, VIEW_H/2 + 32);
+      ctx.fillStyle = '#5cf6ff';
+      ctx.fillText('Endless mode unlocked.', VIEW_W/2, VIEW_H/2 + 54);
+      ctx.restore();
+      return;
+    }
+
+    if (now >= levelBannerUntil) return;
+    const remaining = levelBannerUntil - now;
+    const total = 2200;
+    const elapsed = total - remaining;
+    let alpha = 1;
+    if (elapsed < 300) alpha = elapsed / 300;
+    else if (remaining < 500) alpha = remaining / 500;
+
+    const cfg = currentLevelConfig();
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    const bandH = 120;
+    const bandY = (VIEW_H - bandH) / 2;
+
+    // Dark banner band
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+    ctx.fillRect(0, bandY, VIEW_W, bandH);
+    ctx.strokeStyle = 'rgba(92,246,255,0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, bandY); ctx.lineTo(VIEW_W, bandY);
+    ctx.moveTo(0, bandY + bandH); ctx.lineTo(VIEW_W, bandY + bandH);
+    ctx.stroke();
+
+    // Big level label
+    ctx.font = 'bold 38px Cinzel, serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#5cf6ff';
+    ctx.shadowColor = '#5cf6ff';
+    ctx.shadowBlur = 18;
+    ctx.fillText(`LEVEL ${currentLevel}`, VIEW_W/2, VIEW_H/2);
+
+    // Subtitle: zone name + goal
+    ctx.font = '14px DM Mono, monospace';
+    ctx.fillStyle = '#dceaf2';
+    ctx.shadowBlur = 8;
+    ctx.fillText(`${cfg.name}`, VIEW_W/2, VIEW_H/2 + 22);
+    ctx.fillStyle = '#ffd860';
+    ctx.shadowColor = '#ffd860';
+    ctx.fillText(`Eat ${cfg.goal} fish`, VIEW_W/2, VIEW_H/2 + 48);
+
+    ctx.restore();
+  }
+
+
+  function snakeRenderPoints(snake, now) {
+    const progress = snakeProgress(snake, now);
+    const pts = [];
+    for (let i = 0; i < snake.body.length; i++) {
+      const s = snakeSegmentAt(snake, i, progress);
+      pts.push({ x: s.x * CELL + CELL/2, y: s.y * CELL + CELL/2 });
+    }
+    return pts;
+  }
+
+  // Stroke a path through a list of points, breaking the path on big jumps (wrap).
+  function strokeSnakePath(pts, lineWidth) {
+    ctx.lineWidth = lineWidth;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i];
+      if (i === 0) { ctx.moveTo(p.x, p.y); continue; }
+      const prev = pts[i - 1];
+      // If the points are far apart, this segment wrapped around — break the path.
+      if (Math.abs(prev.x - p.x) > CELL * 2.5 || Math.abs(prev.y - p.y) > CELL * 2.5) {
+        ctx.moveTo(p.x, p.y);
+      } else {
+        ctx.lineTo(p.x, p.y);
+      }
+    }
+    ctx.stroke();
+  }
+
+  function drawSnake(snake, color, light, isPredator) {
+    if (snake.body.length === 0) return;
+    const now = performance.now();
+    const pts = snakeRenderPoints(snake, now);
+    if (pts.length === 0) return;
+
+    ctx.save();
+
+    // 1. Outer soft glow halo (stroke).
+    ctx.strokeStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = isPredator ? 16 : 22;
+    strokeSnakePath(pts, CELL * 0.92);
+
+    // 2. Solid body stroke (slightly tapered by drawing a second narrower stroke).
+    ctx.shadowBlur = isPredator ? 8 : 12;
+    strokeSnakePath(pts, CELL * 0.66);
+
+    // 3. Inner highlight stroke (lighter color, thin).
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = light;
+    ctx.globalAlpha = 0.55;
+    strokeSnakePath(pts, CELL * 0.26);
+    ctx.globalAlpha = 1;
+
+    // 4. Bioluminescent dorsal scales — bright dots running along the body
+    //    that travel forward over time, like rippling light along the spine.
+    const t = now / 1000;
+    const flow = t * 4; // dots drift along the body
+    ctx.fillStyle = light;
+    ctx.shadowColor = light;
+    ctx.shadowBlur = 8;
+    for (let i = 0; i < pts.length; i++) {
+      // Skip head (drawn separately) and last (tail tip).
+      if (i === 0 || i === pts.length - 1) continue;
+      const phase = i + flow;
+      const lit = 0.5 + 0.5 * Math.sin(phase * 0.7);
+      if (lit < 0.55) continue; // sparse, only the brightest peaks
+      const r = (CELL * 0.10) * (lit - 0.4) * 2;
+      const taper = 1 - i / pts.length * 0.6;
+      ctx.globalAlpha = 0.75 * taper;
+      ctx.beginPath();
+      ctx.arc(pts[i].x, pts[i].y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // 5. Head — rounded, larger, with eyes facing the heading.
+    const head = pts[0];
+    const next = pts[1] || head;
+    let dx = head.x - next.x, dy = head.y - next.y;
+    // If body wrapped, fall back to grid direction so the head doesn't flip wildly.
+    if (Math.abs(dx) > CELL * 2.5 || Math.abs(dy) > CELL * 2.5) {
+      dx = snake.dir.x; dy = snake.dir.y;
+    }
+    const len = Math.hypot(dx, dy) || 1;
+    const ex = dx / len, ey = dy / len;
+    const px = -ey, py = ex;
+
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 26;
+    ctx.fillStyle = light;
+    ctx.beginPath();
+    ctx.arc(head.x, head.y, CELL * 0.46, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Brow / forward face plate
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(
+      head.x + ex * CELL * 0.18,
+      head.y + ey * CELL * 0.18,
+      CELL * 0.34, CELL * 0.22,
+      Math.atan2(ey, ex), 0, Math.PI * 2
+    );
+    ctx.fill();
+
+    // Eyes (sclera + pupil)
+    const eyeOff = CELL * 0.20;
+    const eyeFwd = CELL * 0.10;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(head.x + ex*eyeFwd + px*eyeOff, head.y + ey*eyeFwd + py*eyeOff, CELL*0.10, 0, Math.PI*2);
+    ctx.arc(head.x + ex*eyeFwd - px*eyeOff, head.y + ey*eyeFwd - py*eyeOff, CELL*0.10, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#01040a';
+    ctx.beginPath();
+    ctx.arc(head.x + ex*eyeFwd*1.4 + px*eyeOff, head.y + ey*eyeFwd*1.4 + py*eyeOff, CELL*0.05, 0, Math.PI*2);
+    ctx.arc(head.x + ex*eyeFwd*1.4 - px*eyeOff, head.y + ey*eyeFwd*1.4 - py*eyeOff, CELL*0.05, 0, Math.PI*2);
+    ctx.fill();
+
+    // Predator fang detail (and an angry red glow)
+    if (isPredator) {
+      ctx.fillStyle = '#fff8f0';
+      ctx.beginPath();
+      ctx.moveTo(head.x + ex * CELL*0.42, head.y + ey * CELL*0.42);
+      ctx.lineTo(head.x + ex * CELL*0.62 + px*3.5, head.y + ey * CELL*0.62 + py*3.5);
+      ctx.lineTo(head.x + ex * CELL*0.62 - px*3.5, head.y + ey * CELL*0.62 - py*3.5);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      // Player has small "fin" appendages on the sides of the head.
+      ctx.fillStyle = light;
+      ctx.globalAlpha = 0.7;
+      const finBack = CELL * 0.05;
+      const finOut = CELL * 0.42;
+      const finBackOut = CELL * 0.55;
+      ctx.beginPath();
+      ctx.moveTo(head.x - ex*finBack + px*CELL*0.30, head.y - ey*finBack + py*CELL*0.30);
+      ctx.lineTo(head.x - ex*CELL*0.25 + px*finOut, head.y - ey*CELL*0.25 + py*finOut);
+      ctx.lineTo(head.x - ex*CELL*0.55 + px*finBackOut, head.y - ey*CELL*0.55 + py*finBackOut);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(head.x - ex*finBack - px*CELL*0.30, head.y - ey*finBack - py*CELL*0.30);
+      ctx.lineTo(head.x - ex*CELL*0.25 - px*finOut, head.y - ey*CELL*0.25 - py*finOut);
+      ctx.lineTo(head.x - ex*CELL*0.55 - px*finBackOut, head.y - ey*CELL*0.55 - py*finBackOut);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.restore();
+  }
+
+  function loop(now) {
+    const dt = (now - lastT) / 1000;
+    lastT = now;
+    const dtMs = dt * 1000;
+
+    // Update transient FX every frame regardless of state (so they keep playing on overlay).
+    if (particles && particles.length) {
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.04;
+        p.vx *= 0.98;
+        p.vy *= 0.98;
+        p.life -= p.decay;
+      }
+      particles = particles.filter(p => p.life > 0);
+    }
+    if (floatingTexts && floatingTexts.length) {
+      for (const f of floatingTexts) {
+        f.y += f.vy;
+        f.vy *= 0.97;
+        f.life -= 0.012;
+      }
+      floatingTexts = floatingTexts.filter(f => f.life > 0);
+    }
+    if (shakeTime > 0) {
+      shakeTime -= dt;
+      if (shakeTime <= 0) shakeMag = 0;
+      else shakeMag *= Math.pow(0.001, dt); // exponential decay
+    }
+
+    if (state === 'playing') {
+      // Decay active buffs (always real time).
+      if (activeBoost > 0) activeBoost = Math.max(0, activeBoost - dtMs);
+      if (activeShield > 0) activeShield = Math.max(0, activeShield - dtMs);
+
+      // Combo expiry
+      if (combo > 0 && now - lastEatTime > 3000) combo = 0;
+
+      // Difficulty scaling: handled in currentPlayerIntervalMs (level + score + boost).
+      const interval = currentPlayerIntervalMs() / 1000;
+      tickAcc += dt;
+      let safety = 6;
+      while (tickAcc >= interval && safety-- > 0) {
+        tickAcc -= interval;
+
+        tickPlayer();
+        if (state !== 'playing') break;
+
+        // Power-up rare timed spawn (~once every ~25s if none on field).
+        if (powerups.length === 0 && Math.random() < 0.0015) {
+          spawnPowerup();
+        }
+        updateHud();
+      }
+    }
+    draw();
+    requestAnimationFrame(loop);
+  }
+
+  function startGame() {
+    reset();
+    state = 'playing';
+    ovTitle.classList.remove('danger');
+    overlay.classList.add('hidden');
+  }
+  function togglePause() {
+    if (state === 'playing') {
+      state = 'paused';
+      sfx.pause();
+      ovTitle.classList.remove('danger');
+      ovTitle.textContent = 'HELD BREATH';
+      ovMsg.textContent = 'The current pauses for you.';
+      startBtn.textContent = '▶ RESUME';
+      ovHint.textContent = 'PRESS SPACE';
+      overlay.classList.remove('hidden');
+    } else if (state === 'paused') {
+      state = 'playing';
+      sfx.pause();
+      lastT = performance.now();
+      overlay.classList.add('hidden');
+    }
+  }
+
+  // Audio contexts must be unlocked by a user gesture on most browsers.
+  function unlockAudio() {
+    const ctx = ensureAudio();
+    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+  }
+
+  startBtn.addEventListener('click', () => {
+    unlockAudio();
+    if (state === 'paused') return togglePause();
+    startGame();
+  });
+
+  window.addEventListener('keydown', (e) => {
+    unlockAudio();
+    const k = e.key.toLowerCase();
+    if (state === 'idle' || state === 'over') {
+      startGame();
+      e.preventDefault();
+      return;
+    }
+    if (k === ' ' || k === 'p') { togglePause(); e.preventDefault(); return; }
+    if (k === 'm') { muted = !muted; e.preventDefault(); return; }
+    if (state !== 'playing') return;
+    // Left turn: ArrowLeft / A
+    if (k === 'arrowleft' || k === 'a') {
+      turnCounterClockwise();
+      e.preventDefault();
+      return;
+    }
+    // Right turn: ArrowRight / D (and any other key as a fallback)
+    if (k === 'arrowright' || k === 'd' || k === 'arrowup' || k === 'arrowdown' || k === 'w' || k === 's') {
+      turnClockwise();
+      e.preventDefault();
+      return;
+    }
+    // Catch-all: any other printable key turns right (so the game still works
+    // even if the player's keyboard lacks a left arrow, etc.).
+    turnClockwise();
+    e.preventDefault();
+  });
+
+  // Pointer on the canvas: tapping the left half turns left, right half turns right.
+  canvas.addEventListener('pointerdown', (e) => {
+    unlockAudio();
+    if (state === 'idle' || state === 'over') { startGame(); return; }
+    if (state !== 'playing') return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    if (x < rect.width / 2) turnCounterClockwise();
+    else turnClockwise();
+  });
+
+  // Mobile turn buttons.
+  document.getElementById('turnLeftBtn').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    unlockAudio();
+    if (state === 'idle' || state === 'over') { startGame(); return; }
+    if (state === 'playing') turnCounterClockwise();
+  });
+  document.getElementById('turnRightBtn').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    unlockAudio();
+    if (state === 'idle' || state === 'over') { startGame(); return; }
+    if (state === 'playing') turnClockwise();
+  });
+
+  fitDPR();
+  reset();
+  state = 'idle';
+  ovTitle.classList.remove('danger');
+  ovTitle.textContent = 'DESCEND';
+  ovMsg.innerHTML = 'A bioluminescent eel in open water. Tap left/right to turn.<br><br>Survive <b>10 levels</b> of the abyss — from sunlit tidepools down to the black trench. Eat fish to progress, chase pearls and power orbs, and avoid rocks, urchins, and currents.';
+  startBtn.textContent = '▼ DIVE';
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
